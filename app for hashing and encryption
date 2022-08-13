@@ -1,0 +1,93 @@
+//jshint esversion:6
+require('dotenv').config()
+const express = require("express")
+const bodyParser = require("body-parser");
+const ejs = require("ejs");
+const mongoose = require("mongoose");
+// encryption method 
+// var encrypt = require('mongoose-encryption');
+// bcrypt method 
+const bcrypt = require("bcrypt")
+const saltRound = 10;
+
+
+
+const app = express();
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.set('view engine', 'ejs');
+app.use(express.static("public"));
+mongoose.connect("mongodb://localhost:27017/singnupForm");
+
+const dbSchema = new mongoose.Schema({
+    email: String,
+    password: String
+})
+
+// we can not place our secret Key here so we sill place this in dotenv file
+// const secret = "Thisisourlittilesecret";
+console.log(process.env.API_KEY)
+
+// for encryption 
+// dbSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ['password','email'] });
+
+const form = mongoose.model("form", dbSchema);
+
+app.get("/", function (req, res) {
+    res.render("home");
+})
+app.get("/login", function (req, res) {
+    res.render("login")
+})
+app.get("/register", function (req, res) {
+    res.render("register")
+})
+app.get("/submit", function (req, res) {
+    res.render("submit")
+})
+
+
+app.post("/register", function (req, res) {
+    bcrypt.hash(req.body.password, saltRound, function (err, hash) {
+        const Form = new form({
+            email: req.body.username,
+            password: hash
+        })
+        Form.save();
+        res.render("secrets");
+    })
+    // for encryption 
+    // const Form = new form({
+    //     email: req.body.username,
+    //     password: req.body.password
+    // })
+    // Form.save();
+    // res.render("secrets");
+})
+app.post("/login", function (req, res) {
+    form.findOne({ email: req.body.username }, function (err, data) {
+        if (!err) {
+            if (data) {
+                bcrypt.compare(password, hash, function(err, result){
+                    if(result===true){
+                        res.render("secrets")
+                    }
+                })
+            }
+            else {
+                res.send("password does not match")
+            }
+        }
+        else {
+            console.log(err);
+        }
+    })
+})
+
+
+
+
+
+app.listen(3000, function () {
+    console.log("server started")
+})
